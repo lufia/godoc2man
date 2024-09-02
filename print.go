@@ -7,6 +7,8 @@ import (
 	"io"
 	"path"
 	"strings"
+
+	"github.com/lufia/godoc2man/internal/roff"
 )
 
 type Printer struct {
@@ -30,14 +32,14 @@ func (p *Printer) Command(pkg *doc.Package, d *comment.Doc) {
 }
 
 func (p *Printer) writeHeader(pkg *doc.Package) {
-	p.writeString(".TH %s %d\n", p.pkgPath, p.section)
-	p.writeString(".SH NAME\n")
+	fmt.Fprintf(p, ".TH %s %d\n", p.pkgPath, p.section)
+	fmt.Fprintf(p, ".SH NAME\n")
 	name := path.Base(p.pkgPath)
 	s := pkg.Synopsis(pkg.Doc)
 	s = strings.TrimPrefix(s, name)
 	s = strings.TrimSpace(s)
-	p.writeString("%s \\- %s\n", name, s)
-	p.writeString(".SH OVERVIEW\n")
+	fmt.Fprintf(p, "%s \\- %s\n", name, s)
+	fmt.Fprintf(p, ".SH OVERVIEW\n")
 }
 
 const bullet = `\(bu`
@@ -46,109 +48,88 @@ func (p *Printer) writeContent(content []comment.Block, depth int) {
 	for _, c := range content {
 		switch c := c.(type) {
 		case *comment.Heading:
-			p.writeString(".SH %s\n", HeadingText(c.Text))
+			w := NewHeading(p)
+			fmt.Fprintf(w, ".SH %s", Text(c.Text))
+			fmt.Fprintln(p, "")
 		case *comment.Paragraph:
 			if depth == 0 {
-				p.writeString(".PP\n")
+				fmt.Fprintf(p, ".PP\n")
 			}
-			p.writeString("%s", ParagraphText(c.Text))
+			fmt.Fprintf(p, "%+s", Text(c.Text))
 		case *comment.Code:
-			p.writeString(".EX\n%s.EE\n", c.Text)
+			fmt.Fprintf(p, ".PP\n")
+			fmt.Fprintf(p, ".EX\n")
+			fmt.Fprintf(p, ".in +4n\n")
+			fmt.Fprintf(p, "%s\n", roff.Str(c.Text))
+			fmt.Fprintf(p, ".in\n")
+			fmt.Fprintf(p, ".EE\n")
 		case *comment.List:
 			for _, item := range c.Items {
 				symbol := bullet
 				if item.Number != "" {
 					symbol = item.Number + "."
 				}
-				p.writeString(".IP %q\n", symbol)
+				fmt.Fprintf(p, ".IP %s 4\n", symbol)
 				p.writeContent(item.Content, depth+1)
 			}
 		}
 	}
 }
 
-func (p *Printer) writeString(format string, args ...any) {
+func (p *Printer) Write(data []byte) (n int, err error) {
 	if p.err != nil {
-		return
+		return 0, p.err
 	}
-	_, p.err = fmt.Fprintf(p.w, format, args...)
+	return p.w.Write(data)
 }
 
-type HeadingText []comment.Text
+type Text []comment.Text
 
-func (t HeadingText) String() string {
-	var s strings.Builder
+func (t Text) Format(f fmt.State, c rune) {
+	w := NewExpWriter(f)
+	format := "%"
+	if f.Flag('+') {
+		format += "+"
+	}
+	format += string(c)
+
+	trailing := false
 	for _, v := range t {
 		switch v := v.(type) {
 		case comment.Plain:
-			s.WriteString(strings.ToUpper(Text(v).String()))
-		case comment.Italic:
-			s.WriteString(strings.ToUpper(Text(v).String()))
-		case *comment.Link:
-		case *comment.DocLink:
-		}
-	}
-	return s.String()
-}
-
-type ParagraphText []comment.Text
-
-func (t ParagraphText) String() string {
-	var s strings.Builder
-	for _, v := range t {
-		switch v := v.(type) {
-		case comment.Plain:
-			s.WriteString(Text(v).String())
-			s.WriteByte('\n')
-		case comment.Italic:
-			s.WriteString(".I ")
-			s.WriteString(Text(v).String())
-			s.WriteByte('\n')
-		case *comment.Link:
-			fmt.Fprintf(&s, ".UR %s\n", v.URL)
-			if len(v.Text) > 0 {
-				fmt.Fprintf(&s, "%s\n", LinkText(v.Text))
+			if trailing {
+				if strings.HasPrefix(string(v), " ") {
+					fmt.Fprint(w, "\n")
+				} else {
+					fmt.Fprint(w, " ")
+				}
+				trailing = false
 			}
-			s.WriteString(".UE ")
-		case *comment.DocLink:
-		}
-	}
-	return s.String()
-}
-
-type LinkText []comment.Text
-
-func (t LinkText) String() string {
-	var s strings.Builder
-	for _, v := range t {
-		switch v := v.(type) {
-		case comment.Plain:
-			s.WriteString(Text(v).String())
+			fmt.Fprintf(w, "%s\n", roff.Str(v))
 		case comment.Italic:
-			s.WriteString(Text(v).String())
+			if f.Flag('+') {
+				fmt.Fprintf(w, ".I ")
+			}
+			fmt.Fprintf(w, "%s\n", roff.Str(v))
 		case *comment.Link:
+			if f.Flag('+') {
+				fmt.Fprintf(w, ".UR %q\n", roff.Str(v.URL))
+			}
+			fmt.Fprintf(w, format, Text(v.Text))
+			if f.Flag('+') {
+				fmt.Fprintf(w, ".UE")
+				trailing = true
+			}
 		case *comment.DocLink:
+			if f.Flag('+') {
+				u := v.DefaultURL("https://pkg.go.dev")
+				fmt.Fprintf(w, "\n.UR %q\n", roff.Str(u))
+			}
+			fmt.Fprintf(w, format, Text(v.Text))
+			if f.Flag('+') {
+				fmt.Fprintf(w, ".UE")
+				trailing = true
+			}
 		}
 	}
-	return s.String()
-}
-
-type text[T ~string] struct {
-	s T
-}
-
-func Text[T ~string](s T) text[T] {
-	return text[T]{s}
-}
-
-var escaper = strings.NewReplacer(
-	"'", `\'`,
-	"`", "\\`",
-	"-", `\-`,
-	`"`, `\"`,
-	"%", `\%`,
-)
-
-func (t text[T]) String() string {
-	return escaper.Replace(string(t.s))
 }
