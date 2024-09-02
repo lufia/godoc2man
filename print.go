@@ -26,12 +26,12 @@ func (p *Printer) Err() error {
 	return p.err
 }
 
-func (p *Printer) Command(pkg *doc.Package, d *comment.Doc) {
-	p.writeHeader(pkg)
+func (p *Printer) Command(pkg *doc.Package, d *comment.Doc, flags []*Flag) {
+	p.writeHeader(pkg, flags)
 	p.writeContent(d.Content, 0)
 }
 
-func (p *Printer) writeHeader(pkg *doc.Package) {
+func (p *Printer) writeHeader(pkg *doc.Package, flags []*Flag) {
 	fmt.Fprintf(p, ".TH %s %d\n", p.pkgPath, p.section)
 	fmt.Fprintf(p, ".SH NAME\n")
 	name := path.Base(p.pkgPath)
@@ -39,6 +39,14 @@ func (p *Printer) writeHeader(pkg *doc.Package) {
 	s = strings.TrimPrefix(s, name)
 	s = strings.TrimSpace(s)
 	fmt.Fprintf(p, "%s \\- %s\n", name, s)
+	if len(flags) > 0 {
+		fmt.Fprintln(p, ".SH OPTIONS")
+		for _, flg := range flags {
+			fmt.Fprintln(p, ".TP")
+			fmt.Fprintf(p, ".BI \"\\-%s \" %s\n", flg.Name, flg.Placeholder)
+			fmt.Fprintln(p, flg.Usage)
+		}
+	}
 	fmt.Fprintf(p, ".SH OVERVIEW\n")
 }
 
