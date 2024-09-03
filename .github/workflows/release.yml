@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  release:
+    types:
+    - published
+jobs:
+  release:
+    strategy:
+      matrix:
+        os:
+        - linux
+        - darwin
+        - windows
+        arch:
+        - amd64
+        - arm64
+        include:
+        - format: tgz
+        - os: windows
+          format: zip
+        exclude:
+        - os: darwin
+          arch: amd64
+        - os: windows
+          arch: arm64
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version: stable
+    - name: Build the package
+      uses: lufia/workflows/.github/actions/go-install@v0.5.0
+      with:
+        package-path: github.com/lufia/dotsync
+        version: ${{ github.ref_name }}
+      env:
+        GOOS: ${{ matrix.os }}
+        GOARCH: ${{ matrix.arch }}
+        CGO_ENABLED: 0
+      id: build
+    - name: Create the asset consists of the build artifacts
+      uses: lufia/workflows/.github/actions/upload-asset@v0.5.0
+      with:
+        tag: ${{ github.ref_name }}
+        path: >
+          ${{ steps.build.outputs.target }}
+          LICENSE
+          README.md
+        name: dotsync-${{ github.ref_name }}.${{ matrix.os }}-${{ matrix.arch }}
+        format: ${{ matrix.format }}
+
+  upload:
+    needs: release
+    permissions:
+      contents: write
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        path: assets
+        merge-multiple: true
+    - name: Upload the assets to the release
+      run: gh release upload -R "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" assets/*
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
