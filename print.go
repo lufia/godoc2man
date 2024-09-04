@@ -113,7 +113,8 @@ func (t Text) Format(f fmt.State, c rune) {
 				}
 				trailing = false
 			}
-			fmt.Fprintf(w, "%s\n", roff.Str(v))
+			s := fmt.Sprintf("%s", roff.Str(v))
+			fmt.Fprintf(w, "%s\n", BreakString(s))
 		case comment.Italic:
 			if f.Flag('+') {
 				fmt.Fprintf(w, ".I ")
