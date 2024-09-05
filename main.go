@@ -25,11 +25,17 @@ func usage() {
 	flag.PrintDefaults()
 }
 
+var (
+	langFlag = flag.String("lang", "en", "`lang`uage code")
+)
+
 func main() {
 	log.SetFlags(0)
 	log.SetPrefix("godoc2man: ")
+
 	flag.Usage = usage
 	flag.Parse()
+
 	if flag.NArg() == 0 {
 		Run(".")
 	} else {
@@ -76,7 +82,7 @@ func Run(name string) {
 		var parser comment.Parser
 		doc := parser.Parse(p.Doc)
 		printer := NewPrinter(pkg.ID, 1, f)
-		printer.Command(p, doc, flags)
+		printer.Command(p, doc, *langFlag, flags)
 		if err := printer.Err(); err != nil {
 			log.Fatalln(err)
 		}

@@ -8,6 +8,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/lufia/godoc2man/internal/language"
 	"github.com/lufia/godoc2man/internal/roff"
 )
 
@@ -26,12 +27,12 @@ func (p *Printer) Err() error {
 	return p.err
 }
 
-func (p *Printer) Command(pkg *doc.Package, d *comment.Doc, flags []*Flag) {
-	p.writeHeader(pkg, flags)
-	p.writeContent(d.Content, 0)
+func (p *Printer) Command(pkg *doc.Package, d *comment.Doc, lang string, flags []*Flag) {
+	p.writeHeader(pkg, lang, flags)
+	p.writeContent(d.Content, lang, 0)
 }
 
-func (p *Printer) writeHeader(pkg *doc.Package, flags []*Flag) {
+func (p *Printer) writeHeader(pkg *doc.Package, lang string, flags []*Flag) {
 	fmt.Fprintf(p, ".TH %s %d\n", p.pkgPath, p.section)
 	fmt.Fprintf(p, ".SH NAME\n")
 	name := path.Base(p.pkgPath)
@@ -52,18 +53,18 @@ func (p *Printer) writeHeader(pkg *doc.Package, flags []*Flag) {
 
 const bullet = `\(bu`
 
-func (p *Printer) writeContent(content []comment.Block, depth int) {
+func (p *Printer) writeContent(content []comment.Block, lang string, depth int) {
 	for _, c := range content {
 		switch c := c.(type) {
 		case *comment.Heading:
 			w := NewHeading(p)
-			fmt.Fprintf(w, ".SH %s", Text(c.Text))
+			fmt.Fprintf(w, ".SH %s", Text{c.Text, lang})
 			fmt.Fprintln(p, "")
 		case *comment.Paragraph:
 			if depth == 0 {
 				fmt.Fprintf(p, ".PP\n")
 			}
-			fmt.Fprintf(p, "%+s", Text(c.Text))
+			fmt.Fprintf(p, "%+s", Text{c.Text, lang})
 		case *comment.Code:
 			fmt.Fprintf(p, ".PP\n")
 			fmt.Fprintf(p, ".EX\n")
@@ -78,7 +79,7 @@ func (p *Printer) writeContent(content []comment.Block, depth int) {
 					symbol = item.Number + "."
 				}
 				fmt.Fprintf(p, ".IP %s 4\n", symbol)
-				p.writeContent(item.Content, depth+1)
+				p.writeContent(item.Content, lang, depth+1)
 			}
 		}
 	}
@@ -91,7 +92,10 @@ func (p *Printer) Write(data []byte) (n int, err error) {
 	return p.w.Write(data)
 }
 
-type Text []comment.Text
+type Text struct {
+	text []comment.Text
+	lang string
+}
 
 func (t Text) Format(f fmt.State, c rune) {
 	w := NewExpWriter(f)
@@ -102,7 +106,7 @@ func (t Text) Format(f fmt.State, c rune) {
 	format += string(c)
 
 	trailing := false
-	for _, v := range t {
+	for _, v := range t.text {
 		switch v := v.(type) {
 		case comment.Plain:
 			if trailing {
@@ -113,8 +117,9 @@ func (t Text) Format(f fmt.State, c rune) {
 				}
 				trailing = false
 			}
-			s := fmt.Sprintf("%s", roff.Str(v))
-			fmt.Fprintf(w, "%s\n", BreakString(s))
+			o := language.NewWriter(w, t.lang)
+			fmt.Fprintf(o, "%s\n", roff.Str(v))
+			o.Close()
 		case comment.Italic:
 			if f.Flag('+') {
 				fmt.Fprintf(w, ".I ")
@@ -124,7 +129,7 @@ func (t Text) Format(f fmt.State, c rune) {
 			if f.Flag('+') {
 				fmt.Fprintf(w, ".UR %q\n", roff.Str(v.URL))
 			}
-			fmt.Fprintf(w, format, Text(v.Text))
+			fmt.Fprintf(w, format, Text{v.Text, t.lang})
 			if f.Flag('+') {
 				fmt.Fprintf(w, ".UE")
 				trailing = true
@@ -134,7 +139,7 @@ func (t Text) Format(f fmt.State, c rune) {
 				u := v.DefaultURL("https://pkg.go.dev")
 				fmt.Fprintf(w, "\n.UR %q\n", roff.Str(u))
 			}
-			fmt.Fprintf(w, format, Text(v.Text))
+			fmt.Fprintf(w, format, Text{v.Text, t.lang})
 			if f.Flag('+') {
 				fmt.Fprintf(w, ".UE")
 				trailing = true
