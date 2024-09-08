@@ -7,4 +7,7 @@ on:
   pull_request:
 jobs:
   test:
+    permissions:
+      # to allow octocov to report comment
+      pull-requests: write
     uses: lufia/workflows/.github/workflows/go-test.yml@cover
