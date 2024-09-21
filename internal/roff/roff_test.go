@@ -28,6 +28,7 @@ func TestStrFormat_s(t *testing.T) {
 		`\`:        `\(rs`,
 		"-":        `\-`,
 		`"`:        `\(dq`,
+		"a\x1fb":   `a\:b`,
 	})
 	testFormat(t, "% s", map[string]string{
 		" text":    " text",

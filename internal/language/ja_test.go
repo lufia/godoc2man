@@ -2,7 +2,6 @@ package language
 
 import (
 	"errors"
-	"io"
 	"strings"
 	"testing"
 
@@ -123,13 +122,15 @@ func TestJapaneseTransform_tokenize(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]string{
-		"すもももももももものうち": `すももも\:ももも\:もものうち`,
+		"すもももももももものうち": "すももも\x1fももも\x1fもものうち",
 	}
 
 	for s, want := range tests {
-		f := strings.NewReader(s)
-		r := NewReader(f, "ja")
-		if v := readString(t, r); v != want {
+		v, _, err := transform.String(&Japanese{}, s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v != want {
 			t.Errorf("%q -> %q; want %q", s, v, want)
 		}
 	}
@@ -142,13 +143,4 @@ func maxRepeat(s, t string, nbytes int) (s1, t1 string) {
 	}
 	r := (nbytes / n) + 1
 	return strings.Repeat(s, r), strings.Repeat(t, r)
-}
-
-func readString(t *testing.T, r io.Reader) string {
-	t.Helper()
-	b, err := io.ReadAll(r)
-	if err != nil {
-		t.Fatal("failed to read:", err)
-	}
-	return string(b)
 }

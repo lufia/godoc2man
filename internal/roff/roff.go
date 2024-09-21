@@ -4,12 +4,21 @@ package roff
 import (
 	"fmt"
 	"strings"
+
+	"github.com/lufia/godoc2man/internal/ascii"
+)
+
+const (
+	Bullet  = `\(bu`
+	WordBreak = `\:`
 )
 
 var escaper = strings.NewReplacer(
 	`\`, `\(rs`,
 	"-", `\-`,
 	`"`, `\(dq`,
+
+	string(ascii.UnitSeparator), WordBreak,
 )
 
 // String represents a string

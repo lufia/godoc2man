@@ -8,6 +8,8 @@ import (
 	"github.com/ikawaha/kagome-dict/ipa"
 	"github.com/ikawaha/kagome/v2/tokenizer"
 	"golang.org/x/text/transform"
+
+	"github.com/lufia/godoc2man/internal/ascii"
 )
 
 var jaTokenizer *tokenizer.Tokenizer
@@ -54,7 +56,7 @@ func (j *Japanese) breakString(s string) string {
 	for _, token := range tokens {
 		buf.WriteString(token.Surface)
 		if j.canBreakAfter(token.Features()) {
-			buf.WriteString(`\:`)
+			buf.WriteByte(ascii.UnitSeparator)
 		}
 	}
 	return buf.String()

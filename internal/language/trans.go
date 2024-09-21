@@ -13,34 +13,14 @@ var transformers = map[string]transform.Transformer{
 	"ja": &Japanese{},
 }
 
-// NewReader returns the [io.Reader] with the transformer corresponding to lang.
-func NewReader(r io.Reader, lang string) io.Reader {
+// String returns the string transformed by the transformer corresponding to lang.
+func String(lang, s string) (string, error) {
 	t, ok := transformers[lang]
 	if !ok {
-		return r
+		return s, nil
 	}
-	return transform.NewReader(r, t)
-}
-
-type nopWriteCloser struct {
-	w io.Writer
-}
-
-func (w nopWriteCloser) Write(p []byte) (int, error) {
-	return w.w.Write(p)
-}
-
-func (nopWriteCloser) Close() error {
-	return nil
-}
-
-// NewWriter returns the [io.WriteCloser] with the transformer corresponding to lang.
-func NewWriter(w io.Writer, lang string) io.WriteCloser {
-	t, ok := transformers[lang]
-	if !ok {
-		return nopWriteCloser{w}
-	}
-	return transform.NewWriter(w, t)
+	v, _, err := transform.String(t, s)
+	return v, err
 }
 
 var blank = []byte{'\n'}

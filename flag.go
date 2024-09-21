@@ -16,6 +16,9 @@ type Flag struct {
 	Usage       string
 }
 
+// FindFlags retrieves flags defined with flag package.
+//
+// BUG(lufia): Currently, it doesn't support [flag.FlagSet].
 func FindFlags(info *types.Info, fset *token.FileSet, files []*ast.File) <-chan *Flag {
 	c := make(chan *Flag)
 	go func() {
