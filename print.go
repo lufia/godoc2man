@@ -42,9 +42,9 @@ var optionDef = strings.TrimSpace(`
 `)
 
 func (p *Printer) writeHeader(pkg *doc.Package, flags []*Flag) {
-	fmt.Fprintf(p, ".TH %s %d\n", p.pkgPath, p.section)
-	fmt.Fprintf(p, ".SH NAME\n")
 	name := path.Base(p.pkgPath)
+	fmt.Fprintf(p, ".TH %s %d\n", name, p.section)
+	fmt.Fprintln(p, ".SH NAME")
 	s := pkg.Synopsis(pkg.Doc)
 	s = strings.TrimPrefix(s, name)
 	s = strings.TrimSpace(s)
@@ -56,7 +56,7 @@ func (p *Printer) writeHeader(pkg *doc.Package, flags []*Flag) {
 			fmt.Fprintln(p, ".OPT", flg.Name, strings.ToUpper(flg.Placeholder), flg.Usage)
 		}
 	}
-	fmt.Fprintf(p, ".SH OVERVIEW\n")
+	fmt.Fprintln(p, ".SH OVERVIEW")
 }
 
 func (p *Printer) writeContent(content []comment.Block, depth int) {
@@ -68,16 +68,16 @@ func (p *Printer) writeContent(content []comment.Block, depth int) {
 			fmt.Fprintln(p, "")
 		case *comment.Paragraph:
 			if depth == 0 {
-				fmt.Fprintf(p, ".PP\n")
+				fmt.Fprintln(p, ".PP")
 			}
 			fmt.Fprintf(p, "%+s", Text(c.Text))
 		case *comment.Code:
-			fmt.Fprintf(p, ".PP\n")
-			fmt.Fprintf(p, ".EX\n")
-			fmt.Fprintf(p, ".in +4n\n")
+			fmt.Fprintln(p, ".PP")
+			fmt.Fprintln(p, ".EX")
+			fmt.Fprintln(p, ".in +4n")
 			fmt.Fprintf(p, "%s\n", roff.Str(c.Text))
-			fmt.Fprintf(p, ".in\n")
-			fmt.Fprintf(p, ".EE\n")
+			fmt.Fprintln(p, ".in")
+			fmt.Fprintln(p, ".EE")
 		case *comment.List:
 			for _, item := range c.Items {
 				symbol := roff.Bullet
