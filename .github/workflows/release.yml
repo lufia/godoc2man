@@ -26,12 +26,12 @@ jobs:
           arch: arm64
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v5
-    - uses: actions/setup-go@v5
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
       with:
         go-version: stable
     - name: Build the package
-      uses: lufia/workflows/.github/actions/go-install@v0.7.0
+      uses: lufia/workflows/.github/actions/go-install@65fcecee196960dacd2ee5bd97a822d28e53411f # v0.7.1
       with:
         package-path: github.com/lufia/dotsync
         version: ${{ github.ref_name }}
@@ -41,7 +41,7 @@ jobs:
         CGO_ENABLED: 0
       id: build
     - name: Create the asset consists of the build artifacts
-      uses: lufia/workflows/.github/actions/upload-asset@v0.7.0
+      uses: lufia/workflows/.github/actions/upload-asset@b8212e3ba1ce55be28d79300853c0f5dc26c0ac4 # v0.7.0
       with:
         tag: ${{ github.ref_name }}
         path: >
@@ -57,7 +57,7 @@ jobs:
       contents: write
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/download-artifact@v5
+    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
       with:
         path: assets
         merge-multiple: true
