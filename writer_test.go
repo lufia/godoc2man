@@ -19,7 +19,7 @@ func TestExpWriterWrite(t *testing.T) {
 func TestPrinterWriteWithPrefix(t *testing.T) {
 	tests := map[string]struct {
 		prefix string
-		format string
+		s string
 		want   string
 	}{
 		"empty": {" ", "", ""},
@@ -34,7 +34,7 @@ func TestPrinterWriteWithPrefix(t *testing.T) {
 			var buf strings.Builder
 			w := NewExpWriter(&buf)
 			w.NeedNextToken(tt.prefix)
-			fmt.Fprintf(w, tt.format)
+			fmt.Fprint(w, tt.s)
 			if v := buf.String(); v != tt.want {
 				t.Errorf("Write() = %q; want %q", v, tt.want)
 			}
