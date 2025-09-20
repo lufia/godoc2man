@@ -2,13 +2,17 @@ package main
 
 import (
 	"fmt"
+	"go/token"
 	"strings"
 	"testing"
 )
 
 func TestPrinterWrite(t *testing.T) {
-	var buf strings.Builder
-	p := NewPrinter("example", 1, &buf)
+	var (
+		fset token.FileSet
+		buf  strings.Builder
+	)
+	p := NewPrinter(&fset, "example", 1, &buf)
 	s := "test"
 	fmt.Fprintf(p, "%s", s)
 	if v := buf.String(); v != s {

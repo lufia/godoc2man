@@ -71,11 +71,7 @@ func Run(name string) {
 		if err != nil {
 			log.Fatalln("parsing documents:", err)
 		}
-		if pkg.Name != "main" {
-			continue
-		}
 
-		flags := retrieveFlags(pkg)
 		f, err := outputFile(*dirFlag, pkg.ID, "1")
 		if err != nil {
 			log.Fatalln("failed to create a file:", err)
@@ -87,8 +83,13 @@ func Run(name string) {
 		}
 		var parser comment.Parser
 		doc := parser.Parse(s)
-		printer := NewPrinter(pkg.ID, 1, f)
-		printer.Command(p, doc, flags)
+		printer := NewPrinter(pkg.Fset, pkg.ID, 1, f)
+		if pkg.Name == "main" {
+			flags := retrieveFlags(pkg)
+			printer.Command(p, doc, flags)
+		} else {
+			printer.Library(p, doc)
+		}
 		if err := printer.Err(); err != nil {
 			log.Fatalln(err)
 		}
