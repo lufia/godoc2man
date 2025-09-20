@@ -12,8 +12,8 @@ import (
 	"go/doc/comment"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
+	"strings"
 
 	"golang.org/x/tools/go/packages"
 
@@ -30,6 +30,7 @@ func usage() {
 var (
 	langFlag = flag.String("lang", "en", "specify the `lang`uage code that is used for GoDoc document")
 	flagFlag = flag.String("flag", "none", "generate options section from sources with static analysis; `pkg` is std or none")
+	dirFlag  = flag.String("dir", "man", "specify the output `dir`ectory")
 )
 
 func main() {
@@ -75,7 +76,7 @@ func Run(name string) {
 		}
 
 		flags := retrieveFlags(pkg)
-		f, err := os.Create(path.Base(pkg.ID) + ".1")
+		f, err := outputFile(*dirFlag, pkg.ID, "1")
 		if err != nil {
 			log.Fatalln("failed to create a file:", err)
 		}
@@ -97,6 +98,21 @@ func Run(name string) {
 		}
 		f.Close()
 	}
+}
+
+func outputFile(base, pkgPath, section string) (*os.File, error) {
+	dir := filepath.Join(base, "man"+section)
+	err := os.MkdirAll(dir, 0755)
+	if err != nil && os.IsExist(err) {
+		return nil, fmt.Errorf("failed to create %s: %w", dir, err)
+	}
+	name := strings.ReplaceAll(pkgPath, "/", "-") + "." + section
+	file := filepath.Join(dir, name)
+	f, err := os.Create(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create %s: %w", file, err)
+	}
+	return f, nil
 }
 
 func retrieveFlags(p *packages.Package) []*Flag {
