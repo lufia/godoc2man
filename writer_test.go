@@ -19,7 +19,7 @@ func TestExpWriterWrite(t *testing.T) {
 func TestPrinterWriteWithPrefix(t *testing.T) {
 	tests := map[string]struct {
 		prefix string
-		s string
+		s      string
 		want   string
 	}{
 		"empty": {" ", "", ""},
