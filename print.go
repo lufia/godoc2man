@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"go/doc"
 	"go/doc/comment"
+	"go/format"
+	"go/token"
 	"io"
 	"path"
 	"strings"
@@ -12,14 +14,15 @@ import (
 )
 
 type Printer struct {
+	fset    *token.FileSet
 	pkgPath string
 	section int
 	w       io.Writer
 	err     error
 }
 
-func NewPrinter(pkgPath string, section int, w io.Writer) *Printer {
-	return &Printer{pkgPath, section, w, nil}
+func NewPrinter(fset *token.FileSet, pkgPath string, section int, w io.Writer) *Printer {
+	return &Printer{fset, pkgPath, section, w, nil}
 }
 
 func (p *Printer) Err() error {
@@ -158,4 +161,43 @@ func (t Text) Format(f fmt.State, c rune) {
 			}
 		}
 	}
+}
+
+func (p *Printer) Library(pkg *doc.Package, d *comment.Doc) {
+	name := path.Base(p.pkgPath)
+	fmt.Fprintf(p, ".TH %s %d\n", name, p.section)
+	fmt.Fprintln(p, ".SH NAME")
+	s := pkg.Synopsis(pkg.Doc)
+	s = strings.TrimPrefix(s, name)
+	s = strings.TrimSpace(s)
+	fmt.Fprintf(p, "%s \\- %s\n", name, s)
+
+	fmt.Fprintln(p, ".SH SYNOPSIS")
+	fmt.Fprintln(p, ".nf")
+	fmt.Fprintf(p, ".B \"import \\(dq%s\\(dq\"\n", p.pkgPath)
+	fmt.Fprintln(p, ".sp")
+	for _, t := range pkg.Funcs {
+		fmt.Fprint(p, ".BI \"")
+		writeFunc(p, p.fset, t)
+		fmt.Fprintln(p, "\"")
+	}
+	fmt.Fprintln(p, ".fi")
+	fmt.Fprintln(p, ".SH DESCRIPTION")
+	for _, t := range pkg.Funcs {
+		s := t.Doc
+		if strings.HasPrefix(s, t.Name) {
+			fmt.Fprintln(p, ".BR", t.Name, "()")
+			s = s[len(t.Name):]
+		}
+		var parser comment.Parser
+		doc := parser.Parse(strings.TrimSpace(s))
+		p.writeContent(doc.Content, 1)
+		fmt.Fprintln(p, ".PP")
+	}
+}
+
+func writeFunc(w io.Writer, fset *token.FileSet, f *doc.Func) error {
+	x := *f.Decl
+	x.Body = nil
+	return format.Node(w, fset, &x)
 }
