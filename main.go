@@ -22,7 +22,7 @@ import (
 
 func usage() {
 	w := flag.CommandLine.Output()
-	fmt.Fprintf(w, "usage: %s [pkg ...]\n", filepath.Base(os.Args[0]))
+	fmt.Fprintf(w, "usage: %s [options] [pkg ...]\n", filepath.Base(os.Args[0]))
 	fmt.Fprint(w, "\noptions:\n")
 	flag.PrintDefaults()
 }
@@ -31,6 +31,7 @@ var (
 	langFlag = flag.String("lang", "en", "specify the `lang`uage code that is used for GoDoc document")
 	flagFlag = flag.String("flag", "none", "generate options section from sources with static analysis; `pkg` is std or none")
 	dirFlag  = flag.String("dir", "man", "specify the output `dir`ectory")
+	tagsFlag = flag.String("tags", "", "comma-separated list of the build `tag`")
 )
 
 func main() {
@@ -58,6 +59,9 @@ func Run(name string) {
 			packages.NeedTypes |
 			packages.NeedSyntax |
 			packages.NeedTypesInfo,
+	}
+	if *tagsFlag != "" {
+		c.BuildFlags = append(c.BuildFlags, "-tags", *tagsFlag)
 	}
 	pkgs, err := packages.Load(c, name)
 	if err != nil {
