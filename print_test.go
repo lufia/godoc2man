@@ -12,7 +12,7 @@ func TestPrinterWrite(t *testing.T) {
 		fset token.FileSet
 		buf  strings.Builder
 	)
-	p := NewPrinter(&fset, "example", 1, &buf)
+	p := NewPrinter(&fset, "example", "1", &buf)
 	s := "test"
 	fmt.Fprintf(p, "%s", s)
 	if v := buf.String(); v != s {

@@ -76,7 +76,8 @@ func Run(name string) {
 			log.Fatalln("parsing documents:", err)
 		}
 
-		f, err := outputFile(*dirFlag, pkg.ID, "1")
+		section := manualSection(pkg.Name)
+		f, err := outputFile(*dirFlag, pkg.ID, section)
 		if err != nil {
 			log.Fatalln("failed to create a file:", err)
 		}
@@ -87,7 +88,7 @@ func Run(name string) {
 		}
 		var parser comment.Parser
 		doc := parser.Parse(s)
-		printer := NewPrinter(pkg.Fset, pkg.ID, 1, f)
+		printer := NewPrinter(pkg.Fset, pkg.ID, section, f)
 		if pkg.Name == "main" {
 			flags := retrieveFlags(pkg)
 			printer.Command(p, doc, flags)
@@ -103,6 +104,13 @@ func Run(name string) {
 		}
 		f.Close()
 	}
+}
+
+func manualSection(name string) string {
+	if name == "main" {
+		return "1"
+	}
+	return "3"
 }
 
 func outputFile(base, pkgPath, section string) (*os.File, error) {

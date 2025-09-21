@@ -17,12 +17,12 @@ import (
 type Printer struct {
 	fset    *token.FileSet
 	pkgPath string
-	section int
+	section string
 	w       io.Writer
 	err     error
 }
 
-func NewPrinter(fset *token.FileSet, pkgPath string, section int, w io.Writer) *Printer {
+func NewPrinter(fset *token.FileSet, pkgPath, section string, w io.Writer) *Printer {
 	return &Printer{fset, pkgPath, section, w, nil}
 }
 
@@ -47,7 +47,7 @@ var optionDef = strings.TrimSpace(`
 
 func (p *Printer) writeHeader(pkg *doc.Package, flags []*Flag) {
 	name := path.Base(p.pkgPath)
-	fmt.Fprintf(p, ".TH %s %d\n", name, p.section)
+	fmt.Fprintf(p, ".TH %s %s\n", name, p.section)
 	fmt.Fprintln(p, ".SH NAME")
 	s := pkg.Synopsis(pkg.Doc)
 	s = strings.TrimPrefix(s, name)
@@ -167,7 +167,7 @@ func (t Text) Format(f fmt.State, c rune) {
 
 func (p *Printer) Library(pkg *doc.Package, d *comment.Doc) {
 	name := path.Base(p.pkgPath)
-	fmt.Fprintf(p, ".TH %s %d\n", name, p.section)
+	fmt.Fprintf(p, ".TH %s %s\n", name, p.section)
 	fmt.Fprintln(p, ".SH NAME")
 	s := pkg.Synopsis(pkg.Doc)
 	s = strings.TrimPrefix(s, name)
