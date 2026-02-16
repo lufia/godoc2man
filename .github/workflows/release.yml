@@ -31,7 +31,7 @@ jobs:
       with:
         go-version: stable
     - name: Build the package
-      uses: lufia/workflows/.github/actions/go-install@11481ca31250b76912caa52ca686f4cc48284f2c # v0.8.1
+      uses: lufia/workflows/.github/actions/go-install@862187051b3e08cb09915314465eeec8cfefe569 # v0.9.0
       with:
         package-path: github.com/lufia/dotsync
         version: ${{ github.ref_name }}
@@ -41,7 +41,7 @@ jobs:
         CGO_ENABLED: 0
       id: build
     - name: Create the asset consists of the build artifacts
-      uses: lufia/workflows/.github/actions/upload-asset@11481ca31250b76912caa52ca686f4cc48284f2c # v0.8.1
+      uses: lufia/workflows/.github/actions/upload-asset@862187051b3e08cb09915314465eeec8cfefe569 # v0.9.0
       with:
         tag: ${{ github.ref_name }}
         path: >
