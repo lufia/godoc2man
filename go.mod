@@ -6,7 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/ikawaha/kagome-dict/ipa v1.2.6
-	github.com/ikawaha/kagome/v2 v2.10.3
+	github.com/ikawaha/kagome/v2 v2.11.0
 	golang.org/x/text v0.34.0
 	golang.org/x/tools v0.42.0
 )
