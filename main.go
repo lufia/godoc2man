@@ -12,6 +12,7 @@ import (
 	"go/doc/comment"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -119,8 +120,13 @@ func outputFile(base, pkgPath, section string) (*os.File, error) {
 	if err != nil && os.IsExist(err) {
 		return nil, fmt.Errorf("failed to create %s: %w", dir, err)
 	}
-	name := strings.ReplaceAll(pkgPath, "/", "-") + "." + section
-	file := filepath.Join(dir, name)
+	var name string
+	if section == "1" { // main package
+		name = path.Base(pkgPath)
+	} else { // library
+		name = strings.ReplaceAll(pkgPath, "/", "-")
+	}
+	file := filepath.Join(dir, name+"."+section)
 	f, err := os.Create(file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create %s: %w", file, err)
