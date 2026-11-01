@@ -2,7 +2,12 @@
 //
 // # SYNPOSIS
 //
-//	godoc2man [pkg ...]
+//	godoc2man [-lang=en|ja] [-flag=none|std] [-dir=directory] [-tags=tags] [packages]
+//
+// godoc2man generates man pages for the packages specified by a pattern string, or for the current package.
+//
+// If the pattern is relative, like ./..., godoc2man uses only its package name as the output filename.
+// Otherwise it uses its import path as the output filename, replacing '/' with '-'.
 package main
 
 import (
@@ -45,13 +50,13 @@ func main() {
 	if flag.NArg() == 0 {
 		Run(".")
 	} else {
-		for _, name := range flag.Args() {
-			Run(name)
+		for _, pattern := range flag.Args() {
+			Run(pattern)
 		}
 	}
 }
 
-func Run(name string) {
+func Run(pattern string) {
 	c := &packages.Config{
 		Mode: packages.NeedName |
 			packages.NeedFiles |
@@ -64,13 +69,14 @@ func Run(name string) {
 	if *tagsFlag != "" {
 		c.BuildFlags = append(c.BuildFlags, "-tags", *tagsFlag)
 	}
-	pkgs, err := packages.Load(c, name)
+	pkgs, err := packages.Load(c, pattern)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	if packages.PrintErrors(pkgs) > 0 {
 		log.Fatalln("too many errors")
 	}
+	isRelative := isRelativePattern(pattern)
 	for _, pkg := range pkgs {
 		p, err := doc.NewFromFiles(pkg.Fset, pkg.Syntax, pkg.ID)
 		if err != nil {
@@ -78,7 +84,7 @@ func Run(name string) {
 		}
 
 		section := manualSection(pkg.Name)
-		f, err := outputFile(*dirFlag, pkg.ID, section)
+		f, err := outputFile(*dirFlag, pkg.ID, section, isRelative)
 		if err != nil {
 			log.Fatalln("failed to create a file:", err)
 		}
@@ -114,16 +120,20 @@ func manualSection(name string) string {
 	return "3"
 }
 
-func outputFile(base, pkgPath, section string) (*os.File, error) {
+func isRelativePattern(pattern string) bool {
+	return len(pattern) == 0 || pattern[0] == '.'
+}
+
+func outputFile(base, pkgPath, section string, isRelative bool) (*os.File, error) {
 	dir := filepath.Join(base, "man"+section)
 	err := os.MkdirAll(dir, 0755)
 	if err != nil && os.IsExist(err) {
 		return nil, fmt.Errorf("failed to create %s: %w", dir, err)
 	}
 	var name string
-	if section == "1" { // main package
+	if isRelative {
 		name = path.Base(pkgPath)
-	} else { // library
+	} else {
 		name = strings.ReplaceAll(pkgPath, "/", "-")
 	}
 	file := filepath.Join(dir, name+"."+section)
