@@ -1,11 +1,12 @@
 name: Release
 
 on:
-  release:
-    types:
-    - published
+  push:
+    tags:
+    - v[0-9]+.[0-9]+**
+
 jobs:
-  release:
+  build:
     strategy:
       matrix:
         os:
@@ -33,7 +34,7 @@ jobs:
     - name: Build the package
       uses: lufia/workflows/.github/actions/go-install@87182a21e45d32572eea26d16b42baf1e5da0537 # v0.12.0
       with:
-        package-path: github.com/lufia/dotsync
+        package-path: github.com/lufia/godoc2man
         version: ${{ github.ref_name }}
       env:
         GOOS: ${{ matrix.os }}
@@ -48,11 +49,11 @@ jobs:
           ${{ steps.build.outputs.target }}
           LICENSE
           README.md
-        name: dotsync-${{ github.ref_name }}.${{ matrix.os }}-${{ matrix.arch }}
+        name: godoc2man-${{ github.ref_name }}.${{ matrix.os }}-${{ matrix.arch }}
         format: ${{ matrix.format }}
 
-  upload:
-    needs: release
+  release:
+    needs: build
     permissions:
       contents: write
     runs-on: ubuntu-22.04
@@ -61,7 +62,11 @@ jobs:
       with:
         path: assets
         merge-multiple: true
-    - name: Upload the assets to the release
-      run: gh release upload -R "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" assets/*
+    - run: |
+        gh release create -R "$GITHUB_REPOSITORY" "$TAG" \
+          --title "$TAG" \
+          --generate-notes \
+          --draft assets/*
       env:
+        TAG: ${{ github.ref_name }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
